@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
         int sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (sockfd == -1)
         {
-            printf("Error acquiring socket");
+            printf("Error acquiring socket; errno: %i", errno);
             exit(1);
         }
 
@@ -47,14 +47,14 @@ int main(int argc, char *argv[])
         int bindres = bind(sockfd, p->ai_addr, p->ai_addrlen);
         if (bindres == -1)
         {
-            printf("Error binding socket");
+            printf("Error binding socket; errno: %i \n", errno);
             exit(1);
         }
 
         int listenres = listen(sockfd, listen_backlog);
         if (listenres == -1)
         {
-            printf("Error trying to listen");
+            printf("Error trying to listen; errno: %i \n", errno);
             exit(1);
         }
 
@@ -73,6 +73,8 @@ int main(int argc, char *argv[])
         {
             printf("%s \n", buf);
             memset(buf, 0, sizeof buf);
+            char sendmsgbuf[] = "some msg \n";
+            send(newsockfd, sendmsgbuf, sizeof sendmsgbuf, 0);
         }
         if (readbytes == -1)
         {
