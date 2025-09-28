@@ -78,57 +78,22 @@ size_t lfs_accept(int sockfd)
         return -1;
     }
 
-    size_t request_size = 1024;
-    size_t request_usedbytes = 0;
-    char* request = malloc(request_size);
-    if (request == NULL)
-    {
-        perror("malloc");
-        close(newsockfd);
-        return -1;
-    }
-
     ssize_t readbytes;
-    char buf[1024];
+    char buf[1025];
 
-    while ((readbytes = recv(newsockfd, buf, sizeof buf, 0)) > 0)
+    while ((readbytes = recv(newsockfd, buf, sizeof buf - 1, 0)) > 0)
     {
-        if (request_usedbytes + (size_t)readbytes + 1 > request_size)
-        {
-            size_t new_size = request_size;
-            while (new_size < request_usedbytes + (size_t)readbytes + 1)
-            {
-                new_size *= 2;
-            }
-
-            char* new_request = realloc(request, new_size);
-            if (new_request == NULL)
-            {
-                perror("realloc");
-                free(request);
-                close(newsockfd);
-                return -1;
-            }
-            request = new_request;
-            request_size = new_size;
-        }
-
-        memcpy(request + request_usedbytes, buf, (size_t)readbytes);
-        request_usedbytes += (size_t)readbytes;
-        request[request_usedbytes] = '\0';
-
-        printf("%s \n", request);
+        buf[readbytes] = '\0';
+        printf("%s \n", buf);
     }
 
     if (readbytes == -1)
     {
         perror("recv");
-        free(request);
         close(newsockfd);
         return -1;
     }
 
-    free(request);
     close(newsockfd);
-    return (ssize_t)request_usedbytes;
+    return 0;
 }
