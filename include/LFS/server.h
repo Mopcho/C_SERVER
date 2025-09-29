@@ -28,7 +28,7 @@ typedef struct
 
 size_t lfs_listen(const char* host, const char* port);
 
-size_t lfs_accept(int sockfd);
+void lfs_accept(int sockfd);
 
 /**
  * This function expects buf to be null terminated
@@ -38,6 +38,6 @@ size_t lfs_accept(int sockfd);
  * @param read_mode
  * @return
  */
-int lfs_parse_request(const char* buf, size_t buf_len, lfs_RequestMetadata* metadata, char* content, short* read_mode)
+int lfs_parse_request(const char* buf, size_t buf_len, lfs_RequestMetadata* metadata, char* content, short* read_mode);
 
 #endif //SERVER_H

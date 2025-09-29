@@ -53,21 +53,15 @@ size_t lfs_listen(const char* host, const char* port) {
 
         while (1)
         {
-            size_t acceptres = lfs_accept(sockfd);
-            if (acceptres == -1)
-            {
-                printf("Error accept-ing; errno: %i \n", errno);
-                return acceptres;
-            }
+            lfs_accept(sockfd);
         }
-
     }
 
     freeaddrinfo(servinfo);
     return 0;
 }
 
-size_t lfs_accept(int sockfd)
+void lfs_accept(int sockfd)
 {
     struct sockaddr_storage incomingcon;
     socklen_t incomingcon_size = sizeof incomingcon;
@@ -75,7 +69,21 @@ size_t lfs_accept(int sockfd)
     if (newsockfd == -1)
     {
         perror("accept");
-        return -1;
+        exit(-1);
+    }
+
+    pid_t pid = fork();
+    if (pid == -1)
+    {
+        close(newsockfd);
+        perror("fork");
+        exit(-1);
+    }
+
+    if (pid != 0)
+    {
+        close(newsockfd);
+        return;
     }
 
     ssize_t readbytes;
@@ -84,16 +92,16 @@ size_t lfs_accept(int sockfd)
     while ((readbytes = recv(newsockfd, buf, sizeof buf - 1, 0)) > 0)
     {
         buf[readbytes] = '\0';
-        printf("%s \n", buf);
+        printf("PID [%i]: %s \n", getpid(), buf);
     }
 
     if (readbytes == -1)
     {
         perror("recv");
         close(newsockfd);
-        return -1;
+        exit(-1);
     }
 
     close(newsockfd);
-    return 0;
+    exit(0);
 }
