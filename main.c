@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int result = lfs_listen(NULL, argv[1]);
+    const size_t result = lfs_listen(NULL, argv[1]);
 
-    return result;
+    return (int)result;
 }
