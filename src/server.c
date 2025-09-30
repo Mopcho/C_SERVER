@@ -92,7 +92,8 @@ void lfs_accept(int sockfd)
     while ((readbytes = recv(newsockfd, buf, sizeof buf - 1, 0)) > 0)
     {
         buf[readbytes] = '\0';
-        printf("PID [%i]: %s \n", getpid(), buf);
+        printf("PID message received: [%i]: %s \n", getpid(), buf);
+        send(newsockfd, "hi", 3, 0);
     }
 
     if (readbytes == -1)
