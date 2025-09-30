@@ -1,10 +1,13 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "LFS/server.h"
 #include <signal.h>
 #include <string.h>
 
-void no_zombie_processes()
+#include "LFS/client.h"
+
+void no_zombie_processes() // TODO: We can move this as an option to the server
 {
     struct sigaction sa = {0};
     sa.sa_handler = SIG_DFL;
@@ -16,17 +19,53 @@ void no_zombie_processes()
     }
 }
 
-int main(int argc, char *argv[])
+/**
+ * Converts a string to its lowercase version and puts it inside the given buffer
+ * @param src source string
+ * @param buf destination buffer
+ * @param buf_size buffer size ( with null terminated char space included )
+ */
+void str_tolower(const char* src, char* buf, size_t buf_size) // TODO: Move this to some kind of utils
+{
+    size_t index = 0;
+    while (src[index] != '\0' && index < buf_size - 1)
+    {
+        buf[index] = (char)tolower(src[index]);
+        index++;
+    }
+    buf[index] = '\0';
+}
+
+int main(int argc, char* argv[])
 {
     no_zombie_processes();
 
-    if (argc != 2)
+    if (argc != 4)
     {
-        printf("Wrong count of arguments passed. Expected 1.");
+        printf("Wrong count of arguments passed. Expected at least 3 [command(connect/listen)] [host] [port].");
         exit(1);
     }
 
-    const size_t result = lfs_listen(NULL, argv[1]);
+    const char* command = argv[1];
+    const char* host = argv[2];
+    const char* port = argv[3];
 
-    return (int)result;
+    char command_lower[15];
+    str_tolower(command, command_lower, sizeof command_lower / sizeof command_lower[0]);
+
+    int result = 0;
+    if (strcmp(command_lower, "connect") == 0)
+    {
+        result = lfs_connect(host, port);
+    }
+    else if (strcmp(command_lower, "listen") == 0)
+    {
+        result = (int)lfs_listen(host, port);
+    }
+    else
+    {
+        printf("not a valid command");
+    }
+
+    return result;
 }
