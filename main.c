@@ -1,11 +1,13 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "LFS/server.h"
 #include <signal.h>
 #include <string.h>
 
+#include "LFS/server.h"
 #include "LFS/client.h"
+#include "LFS/udp_yapper.h"
+#include "LFS/udp_listener.h"
 
 void no_zombie_processes() // TODO: We can move this as an option to the server
 {
@@ -40,7 +42,7 @@ int main(int argc, char* argv[])
 {
     no_zombie_processes();
 
-    if (argc != 4)
+    if (argc < 4)
     {
         printf("Wrong count of arguments passed. Expected at least 3 [command(connect/listen)] [host] [port].");
         exit(1);
@@ -61,6 +63,16 @@ int main(int argc, char* argv[])
     else if (strcmp(command_lower, "listen") == 0)
     {
         result = (int)lfs_listen(host, port);
+    }
+    else if (strcmp(command_lower, "yap") == 0)
+    {
+        const char * msg = argv[4];
+        size_t msg_len = strlen(msg);
+        result = lfs_yap(host, port, msg, msg_len);
+    }
+    else if (strcmp(command_lower, "listen_yap") == 0)
+    {
+        result = lfs_udplisten(host, port);
     }
     else
     {
