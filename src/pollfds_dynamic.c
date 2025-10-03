@@ -8,7 +8,6 @@ void pollfds_dynamic_add(pollfds_dynamic * obj, struct pollfd toadd)
 {
     if (obj->size == obj->cap)
     {
-        printf("grow \n");
         // grow
         int new_cap = 4;
         if (obj->cap != 0)

@@ -35,9 +35,6 @@ void handle_recv(pollfds_dynamic * pfds_dyn, int recvsockfd)
     char buf[1025];
 
     ssize_t readbytes = recv(recvsockfd, buf, sizeof buf - 1, 0);
-    buf[readbytes] = '\0';
-    printf("PID message received: [%i]: %s \n", getpid(), buf);
-    send(recvsockfd, "hi", 3, 0); // TODO: I think this also should be based on event because we might not be ready to send still and block the thread
 
     if (readbytes == -1)
     {
@@ -46,6 +43,11 @@ void handle_recv(pollfds_dynamic * pfds_dyn, int recvsockfd)
         pollfds_dynamic_remove(pfds_dyn, recvsockfd);
         exit(-1);
     }
+
+    buf[readbytes] = '\0';
+    printf("PID message received: [%i]: %s \n", getpid(), buf);
+
+    send(recvsockfd, "hi", 3, 0); // TODO: I think this also should be based on event because we might not be ready to send still and block the thread
 }
 
 void process_poll_fds(pollfds_dynamic * pfds_dyn, int hsockfd)
