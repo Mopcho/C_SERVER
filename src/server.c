@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <poll.h>
@@ -97,10 +96,9 @@ void process_poll_fds(lfs_server_context * server_context, int hsockfd)
 }
 
 size_t lfs_listen(const char* host, const char* port) {
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof hints);
+    struct addrinfo hints = { 0 };
     struct addrinfo *servinfo;
-    int sockfd;
+    int sockfd = -1;
 
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
