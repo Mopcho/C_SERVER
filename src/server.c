@@ -25,7 +25,7 @@ void handle_accept(pollfds_dynamic * pfds_dyn, int hsockfd)
 
     struct pollfd pfd = { 0 };
     pfd.fd = newsockfd;
-    pfd.events = POLLIN | POLLERR;
+    pfd.events = POLLIN;
 
     pollfds_dynamic_add(pfds_dyn, pfd);
 }
@@ -69,6 +69,14 @@ void process_poll_fds(pollfds_dynamic * pfds_dyn, int hsockfd)
             {
                 handle_recv(pfds_dyn, pollevent.fd);
             }
+        }
+
+        // handle hang up
+        if (pollevent.revents & POLLHUP)
+        {
+            perror("POLLHUP");
+            pollfds_dynamic_remove(pfds_dyn, pollevent.fd);
+            continue;
         }
 
         // handle POLLERR
@@ -136,7 +144,7 @@ size_t lfs_listen(const char* host, const char* port) {
 
     struct pollfd pollfd = { 0 };
     pollfd.fd = sockfd;
-    pollfd.events = POLLIN | POLLERR;
+    pollfd.events = POLLIN;
 
     pollfds_dynamic_add(&pollfds_dyn, pollfd);
 
