@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-void lfs_connection_dynamic_init(lfs_connection_dynamic * obj)
+void lfs_connections_dynamic_init(lfs_connections_dynamic * obj)
 {
-    memset(obj, 0, sizeof(lfs_connection_dynamic));
+    memset(obj, 0, sizeof(lfs_connections_dynamic));
 }
 
-void lfs_connection_dynamic_add(lfs_connection_dynamic * obj, lfs_connection toadd)
+void lfs_connections_dynamic_add(lfs_connections_dynamic * obj, lfs_connection toadd)
 {
     if (obj->size == obj->cap)
     {
@@ -39,7 +39,7 @@ void lfs_connection_dynamic_add(lfs_connection_dynamic * obj, lfs_connection toa
     obj->size++;
 }
 
-void lfs_connection_dynamic_remove(lfs_connection_dynamic * obj, int sockfd_toremove)
+void lfs_connections_dynamic_remove(lfs_connections_dynamic * obj, int sockfd_toremove)
 {
     for (int i = 0; i < obj->size; i++)
     {
@@ -50,7 +50,7 @@ void lfs_connection_dynamic_remove(lfs_connection_dynamic * obj, int sockfd_tore
     }
 }
 
-void lfs_connection_dynamic_destruct(lfs_connection_dynamic * obj)
+void lfs_connections_dynamic_destruct(lfs_connections_dynamic * obj)
 {
     if (obj->connections != NULL)
     {

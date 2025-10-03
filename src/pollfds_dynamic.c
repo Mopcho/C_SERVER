@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-void pollfds_dynamic_add(pollfds_dynamic * obj, struct pollfd toadd)
+void lfs_pollfds_dynamic_add(lfs_pollfds_dynamic * obj, struct pollfd toadd)
 {
     if (obj->size == obj->cap)
     {
@@ -34,7 +34,7 @@ void pollfds_dynamic_add(pollfds_dynamic * obj, struct pollfd toadd)
     obj->size++;
 }
 
-void pollfds_dynamic_remove(pollfds_dynamic * obj, int sockfd_toremove)
+void lfs_pollfds_dynamic_remove(lfs_pollfds_dynamic * obj, int sockfd_toremove)
 {
     for (int i = 0; i < obj->size; i++)
     {
@@ -45,12 +45,12 @@ void pollfds_dynamic_remove(pollfds_dynamic * obj, int sockfd_toremove)
     }
 }
 
-void pollfds_dynamic_init(pollfds_dynamic * obj)
+void lfs_pollfds_dynamic_init(lfs_pollfds_dynamic * obj)
 {
-    memset(obj, 0, sizeof(pollfds_dynamic));
+    memset(obj, 0, sizeof(lfs_pollfds_dynamic));
 }
 
-void pollfds_dynamic_destruct(pollfds_dynamic * obj)
+void lfs_pollfds_dynamic_destruct(lfs_pollfds_dynamic * obj)
 {
     if (obj->pfds != NULL)
     {
