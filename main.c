@@ -3,9 +3,11 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <poll.h>
 
 #include "LFS/server.h"
 #include "LFS/client.h"
+#include "LFS/pollfds_dynamic.h"
 #include "LFS/udp_yapper.h"
 #include "LFS/udp_listener.h"
 
@@ -40,8 +42,6 @@ void str_tolower(const char* src, char* buf, size_t buf_size) // TODO: Move this
 
 int main(int argc, char* argv[])
 {
-    no_zombie_processes();
-
     if (argc < 4)
     {
         printf("Wrong count of arguments passed. Expected at least 3 [command(connect/listen)] [host] [port].");

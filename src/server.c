@@ -3,18 +3,89 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
-#include "LFS/server.h"
 #include <unistd.h>
-
 #include <stdlib.h>
+#include <poll.h>
+
+#include "LFS/server.h"
+#include "LFS/pollfds_dynamic.h"
 
 const int listen_backlog = 5;
 
+void handle_accept(pollfds_dynamic * pfds_dyn, int hsockfd)
+{
+    struct sockaddr_storage incomingcon;
+    socklen_t incomingcon_size = sizeof incomingcon;
+    int newsockfd = accept(hsockfd, (struct sockaddr*)&incomingcon, &incomingcon_size);
+    if (newsockfd == -1)
+    {
+        perror("accept");
+        exit(-1);
+    }
+
+    struct pollfd pfd = { 0 };
+    pfd.fd = newsockfd;
+    pfd.events = POLLIN | POLLERR;
+
+    pollfds_dynamic_add(pfds_dyn, pfd);
+}
+
+void handle_recv(pollfds_dynamic * pfds_dyn, int recvsockfd)
+{
+    char buf[1025];
+
+    ssize_t readbytes = recv(recvsockfd, buf, sizeof buf - 1, 0);
+    buf[readbytes] = '\0';
+    printf("PID message received: [%i]: %s \n", getpid(), buf);
+    send(recvsockfd, "hi", 3, 0); // TODO: I think this also should be based on event because we might not be ready to send still and block the thread
+
+    if (readbytes == -1)
+    {
+        perror("recv");
+        close(recvsockfd);
+        pollfds_dynamic_remove(pfds_dyn, recvsockfd);
+        exit(-1);
+    }
+}
+
+void process_poll_fds(pollfds_dynamic * pfds_dyn, int hsockfd)
+{
+    for (int i = 0; i < pfds_dyn->size; i++)
+    {
+        struct pollfd pollevent = pfds_dyn->pfds[i];
+
+        if (pollevent.revents == 0)
+        {
+            continue;
+        }
+
+        // handle POLLIN
+        if (pollevent.revents & POLLIN)
+        {
+            if (pollevent.fd == hsockfd)
+            {
+                handle_accept(pfds_dyn, hsockfd);
+            } else
+            {
+                handle_recv(pfds_dyn, pollevent.fd);
+            }
+        }
+
+        // handle POLLERR
+        if (pollevent.revents & POLLERR)
+        {
+            perror("POLLERR");
+            exit(-1);
+        }
+    }
+}
+
 size_t lfs_listen(const char* host, const char* port) {
     struct addrinfo hints;
-    struct addrinfo *servinfo;
-
     memset(&hints, 0, sizeof hints);
+    struct addrinfo *servinfo;
+    int sockfd;
+
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
@@ -24,14 +95,14 @@ size_t lfs_listen(const char* host, const char* port) {
         fprintf(stderr, "gai error: %s\n", gai_strerror(status));
         return status;
     }
-
-    for (struct addrinfo* p = servinfo; p != NULL; p = p->ai_next)
+    struct addrinfo* p;
+    for (p = servinfo; p != NULL; p = p->ai_next)
     {
-        int sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (sockfd == -1)
         {
             printf("Error acquiring socket; errno: %i", errno);
-            return sockfd;
+            continue;
         }
 
         int reuse_socket_opt = 1;
@@ -41,68 +112,43 @@ size_t lfs_listen(const char* host, const char* port) {
         if (bindres == -1)
         {
             printf("Error binding socket; errno: %i \n", errno);
-            return bindres;
+            continue;
         }
 
-        int listenres = listen(sockfd, listen_backlog);
-        if (listenres == -1)
+        break;
+    }
+
+    if (p == NULL)
+    {
+        return -1;
+    }
+
+    int listenres = listen(sockfd, listen_backlog);
+    if (listenres == -1)
+    {
+        printf("Error trying to listen; errno: %i \n", errno);
+        return -1;
+    }
+
+    // Listen for new connection on the original socket
+    pollfds_dynamic pollfds_dyn;
+    pollfds_dynamic_init(&pollfds_dyn);
+
+    struct pollfd pollfd = { 0 };
+    pollfd.fd = sockfd;
+    pollfd.events = POLLIN | POLLERR;
+
+    pollfds_dynamic_add(&pollfds_dyn, pollfd);
+
+    for (;;)
+    {
+        int pollerr = poll(pollfds_dyn.pfds, pollfds_dyn.size, -1);
+        if (pollerr == -1)
         {
-            printf("Error trying to listen; errno: %i \n", errno);
-            return listenres;
+            perror("poll");
+            exit(1);
         }
 
-        while (1)
-        {
-            lfs_accept(sockfd);
-        }
+        process_poll_fds(&pollfds_dyn, sockfd);
     }
-
-    freeaddrinfo(servinfo);
-    return 0;
-}
-
-void lfs_accept(int sockfd)
-{
-    struct sockaddr_storage incomingcon;
-    socklen_t incomingcon_size = sizeof incomingcon;
-    int newsockfd = accept(sockfd, (struct sockaddr*)&incomingcon, &incomingcon_size);
-    if (newsockfd == -1)
-    {
-        perror("accept");
-        exit(-1);
-    }
-
-    pid_t pid = fork();
-    if (pid == -1)
-    {
-        close(newsockfd);
-        perror("fork");
-        exit(-1);
-    }
-
-    if (pid != 0)
-    {
-        close(newsockfd);
-        return;
-    }
-
-    ssize_t readbytes;
-    char buf[1025];
-
-    while ((readbytes = recv(newsockfd, buf, sizeof buf - 1, 0)) > 0)
-    {
-        buf[readbytes] = '\0';
-        printf("PID message received: [%i]: %s \n", getpid(), buf);
-        send(newsockfd, "hi", 3, 0);
-    }
-
-    if (readbytes == -1)
-    {
-        perror("recv");
-        close(newsockfd);
-        exit(-1);
-    }
-
-    close(newsockfd);
-    exit(0);
 }
