@@ -24,8 +24,12 @@ void lfs_pollfds_dynamic_add(lfs_pollfds_dynamic * obj, struct pollfd toadd)
         }
 
         // move from old to new memory block
-        memcpy(new_memory_block, obj->pfds, obj->size * sizeof(struct pollfd));
-        free(obj->pfds);
+        if (obj->pfds != NULL)
+        {
+            memcpy(new_memory_block, obj->pfds, obj->size * sizeof(struct pollfd));
+            free(obj->pfds);
+        }
+
         obj->pfds = new_memory_block;
         obj->cap = new_cap;
     }
@@ -45,9 +49,11 @@ void lfs_pollfds_dynamic_remove(lfs_pollfds_dynamic * obj, int sockfd_toremove)
     }
 }
 
-void lfs_pollfds_dynamic_init(lfs_pollfds_dynamic * obj)
+lfs_pollfds_dynamic* lfs_pollfds_dynamic_init()
 {
+    lfs_pollfds_dynamic* obj = malloc(sizeof(lfs_pollfds_dynamic));
     memset(obj, 0, sizeof(lfs_pollfds_dynamic));
+    return obj;
 }
 
 void lfs_pollfds_dynamic_destruct(lfs_pollfds_dynamic * obj)

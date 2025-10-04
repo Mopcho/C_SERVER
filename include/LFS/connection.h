@@ -15,7 +15,7 @@ typedef struct
     int size;
 } lfs_connections_dynamic;
 
-void lfs_connections_dynamic_init(lfs_connections_dynamic * obj);
+lfs_connections_dynamic* lfs_connections_dynamic_init();
 
 void lfs_connections_dynamic_add(lfs_connections_dynamic * obj, lfs_connection toadd);
 

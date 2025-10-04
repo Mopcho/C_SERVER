@@ -10,7 +10,7 @@ typedef struct
     int cap;
 } lfs_pollfds_dynamic;
 
-void lfs_pollfds_dynamic_init(lfs_pollfds_dynamic * obj);
+lfs_pollfds_dynamic* lfs_pollfds_dynamic_init();
 
 void lfs_pollfds_dynamic_add(lfs_pollfds_dynamic * obj, struct pollfd toadd);
 

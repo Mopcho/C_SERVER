@@ -4,9 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-void lfs_connections_dynamic_init(lfs_connections_dynamic * obj)
+lfs_connections_dynamic* lfs_connections_dynamic_init()
 {
+    lfs_connections_dynamic* obj = malloc(sizeof(lfs_connections_dynamic));
     memset(obj, 0, sizeof(lfs_connections_dynamic));
+    return obj;
 }
 
 void lfs_connections_dynamic_add(lfs_connections_dynamic * obj, lfs_connection toadd)
@@ -29,8 +31,12 @@ void lfs_connections_dynamic_add(lfs_connections_dynamic * obj, lfs_connection t
         }
 
         // move from old to new memory block
-        memcpy(new_memory_block, obj->connections, obj->size * sizeof(lfs_connection));
-        free(obj->connections);
+        if (obj->connections != NULL)
+        {
+            memcpy(new_memory_block, obj->connections, obj->size * sizeof(lfs_connection));
+            free(obj->connections);
+        }
+
         obj->connections = new_memory_block;
         obj->cap = new_cap;
     }

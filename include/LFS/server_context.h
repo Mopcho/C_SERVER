@@ -10,4 +10,6 @@ typedef struct
     lfs_pollfds_dynamic * pollfds;
 } lfs_server_context;
 
+lfs_server_context* lfs_server_context_init();
+
 #endif //SERVER_CONTEXT_H

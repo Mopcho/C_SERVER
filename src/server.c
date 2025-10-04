@@ -144,34 +144,21 @@ size_t lfs_listen(const char* host, const char* port) {
         return -1;
     }
 
-    lfs_server_context server_context = { 0 };
-
-    // Listen for new connection on the original socket
-    lfs_pollfds_dynamic pollfds_dyn;
-    lfs_pollfds_dynamic_init(&pollfds_dyn);
+    lfs_server_context* server_context = lfs_server_context_init();
     struct pollfd pollfd = { 0 };
     pollfd.fd = sockfd;
     pollfd.events = POLLIN;
-    lfs_pollfds_dynamic_add(&pollfds_dyn, pollfd);
-
-    server_context.pollfds = &pollfds_dyn;
-
-    server_context.connections = calloc(1, sizeof(lfs_connection));
-    if (server_context.connections == NULL)
-    {
-        perror("calloc");
-        exit(-1);
-    }
+    lfs_pollfds_dynamic_add(server_context->pollfds, pollfd);
 
     for (;;)
     {
-        int pollerr = poll(pollfds_dyn.pfds, pollfds_dyn.size, -1);
+        int pollerr = poll(server_context->pollfds->pfds, server_context->pollfds->size, -1);
         if (pollerr == -1)
         {
             perror("poll");
             exit(1);
         }
 
-        process_poll_fds(&server_context, sockfd);
+        process_poll_fds(server_context, sockfd);
     }
 }
