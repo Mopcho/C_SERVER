@@ -37,20 +37,18 @@ void accpet_connection(lfs_server_context * server_context)
     lfs_connections_dynamic_add(server_context->connections_container, conn);
 }
 
-void receive_message(lfs_server_context * server_context, int sockfd)
+int receive_message(lfs_connection * connection)
 {
-    lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, sockfd);
-
     ssize_t readbytes = recv(connection->sockfd, connection->readbuf, sizeof connection->readbuf - 1, 0);
     connection->readbuf[readbytes] = '\0';
+    connection->readbytes += readbytes;
     if (readbytes == -1 || readbytes == 0)
     {
         if (readbytes == -1) { perror("recv"); }
-        close(sockfd);
-        lfs_pollfds_dynamic_remove(server_context->pollfds_container, sockfd);
-        return;
+        return -1;
     }
     printf("PID message received: [%i]: %s \n", getpid(), connection->readbuf);
+    return 0;
 }
 
 void process_pollin(lfs_server_context * server_context, struct pollfd pollevent)
@@ -60,7 +58,13 @@ void process_pollin(lfs_server_context * server_context, struct pollfd pollevent
         accpet_connection(server_context);
     } else
     {
-        receive_message(server_context, pollevent.fd);
+        lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, pollevent.fd);
+        int status = receive_message(connection);
+        if (!status)
+        {
+            close(connection->sockfd);
+            lfs_pollfds_dynamic_remove(server_context->pollfds_container, connection->sockfd);
+        }
     }
 }
 
@@ -80,25 +84,19 @@ void process_events(lfs_server_context * server_context)
     {
         struct pollfd pollevent = server_context->pollfds_container->pfds[i];
 
-        if (pollevent.revents == 0)
-        {
-            continue;
-        }
+        if (pollevent.revents == 0) { continue; }
 
-        // handle POLLIN
         if (pollevent.revents & POLLIN)
         {
             process_pollin(server_context, pollevent);
         }
 
-        // handle hang up
         if (pollevent.revents & POLLHUP)
         {
             process_pollhup(server_context, pollevent);
             continue;
         }
 
-        // handle POLLERR
         if (pollevent.revents & POLLERR)
         {
             process_pollerr(server_context, pollevent);

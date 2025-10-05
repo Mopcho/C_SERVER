@@ -1,10 +1,13 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
+#include <stddef.h>
+
 typedef struct
 {
     char readbuf[1024];
     char writebuf[1024];
+    size_t readbytes;
     int sockfd;
 } lfs_connection;
 
