@@ -9,12 +9,11 @@
 #include "LFS/server.h"
 #include "LFS/pollfds_dynamic.h"
 #include "LFS/connection.h"
-#include "LFS/handler_codes.h"
 #include "LFS/server_context.h"
 
 const int listen_backlog = 5;
 
-void lfs_accpet_connection(lfs_server_context * server_context)
+void accpet_connection(lfs_server_context * server_context)
 {
     // accept
     struct sockaddr_storage incomingcon;
@@ -38,7 +37,7 @@ void lfs_accpet_connection(lfs_server_context * server_context)
     lfs_connections_dynamic_add(server_context->connections_container, conn);
 }
 
-void lfs_receive_message(lfs_server_context * server_context, int sockfd)
+void receive_message(lfs_server_context * server_context, int sockfd)
 {
     lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, sockfd);
 
@@ -58,10 +57,10 @@ void process_pollin(lfs_server_context * server_context, struct pollfd pollevent
 {
     if (pollevent.fd == server_context->sockfd)
     {
-        lfs_accpet_connection(server_context);
+        accpet_connection(server_context);
     } else
     {
-        lfs_receive_message(server_context, pollevent.fd);
+        receive_message(server_context, pollevent.fd);
     }
 }
 
