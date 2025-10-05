@@ -6,10 +6,13 @@
 
 typedef struct
 {
-    lfs_connections_dynamic * connections;
-    lfs_pollfds_dynamic * pollfds;
+    lfs_connections_dynamic * connections_container;
+    lfs_pollfds_dynamic * pollfds_container;
+    int sockfd;
 } lfs_server_context;
 
 lfs_server_context* lfs_server_context_init();
+
+lfs_connection * lfs_server_context_get_connection_by_fd(lfs_server_context* server_context, int fd);
 
 #endif //SERVER_CONTEXT_H

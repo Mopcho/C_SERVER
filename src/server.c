@@ -9,57 +9,77 @@
 #include "LFS/server.h"
 #include "LFS/pollfds_dynamic.h"
 #include "LFS/connection.h"
+#include "LFS/handler_codes.h"
 #include "LFS/server_context.h"
 
 const int listen_backlog = 5;
 
-void handle_accept(lfs_server_context * server_context, int hsockfd)
+void lfs_accpet_connection(lfs_server_context * server_context)
 {
+    // accept
     struct sockaddr_storage incomingcon;
     socklen_t incomingcon_size = sizeof incomingcon;
-    int newsockfd = accept(hsockfd, (struct sockaddr*)&incomingcon, &incomingcon_size);
+    int newsockfd = accept(server_context->sockfd, (struct sockaddr*)&incomingcon, &incomingcon_size);
     if (newsockfd == -1)
     {
         perror("accept");
         exit(-1);
     }
 
+    // create pollfd and add it to the server context
     struct pollfd pfd = { 0 };
     pfd.fd = newsockfd;
     pfd.events = POLLIN;
+    lfs_pollfds_dynamic_add(server_context->pollfds_container, pfd);
 
-    lfs_pollfds_dynamic_add(server_context->pollfds, pfd);
-
+    // create connection and add it to the server context
     lfs_connection conn = { 0 };
     conn.sockfd = newsockfd;
-    lfs_connections_dynamic_add(server_context->connections, conn);
+    lfs_connections_dynamic_add(server_context->connections_container, conn);
 }
 
-void handle_recv(lfs_pollfds_dynamic * pfds_dyn, int recvsockfd)
+void lfs_receive_message(lfs_server_context * server_context, int sockfd)
 {
-    char buf[1025];
+    lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, sockfd);
 
-    ssize_t readbytes = recv(recvsockfd, buf, sizeof buf - 1, 0);
-
-    if (readbytes == -1)
+    ssize_t readbytes = recv(connection->sockfd, connection->readbuf, sizeof connection->readbuf - 1, 0);
+    connection->readbuf[readbytes] = '\0';
+    if (readbytes == -1 || readbytes == 0)
     {
-        perror("recv");
-        close(recvsockfd);
-        lfs_pollfds_dynamic_remove(pfds_dyn, recvsockfd);
-        exit(-1);
+        if (readbytes == -1) { perror("recv"); }
+        close(sockfd);
+        lfs_pollfds_dynamic_remove(server_context->pollfds_container, sockfd);
+        return;
     }
-
-    buf[readbytes] = '\0';
-    printf("PID message received: [%i]: %s \n", getpid(), buf);
-
-    send(recvsockfd, "hi\n", 4, 0); // TODO: I think this also should be based on event because we might not be ready to send still and block the thread
+    printf("PID message received: [%i]: %s \n", getpid(), connection->readbuf);
 }
 
-void process_poll_fds(lfs_server_context * server_context, int hsockfd)
+void process_pollin(lfs_server_context * server_context, struct pollfd pollevent)
 {
-    for (int i = 0; i < server_context->pollfds->size; i++)
+    if (pollevent.fd == server_context->sockfd)
     {
-        struct pollfd pollevent = server_context->pollfds->pfds[i];
+        lfs_accpet_connection(server_context);
+    } else
+    {
+        lfs_receive_message(server_context, pollevent.fd);
+    }
+}
+
+void process_pollhup(lfs_server_context * server_context, struct pollfd pollevent)
+{
+    lfs_pollfds_dynamic_remove(server_context->pollfds_container, pollevent.fd);
+}
+
+void process_pollerr(lfs_server_context * server_context, struct pollfd pollevent)
+{
+    lfs_pollfds_dynamic_remove(server_context->pollfds_container, pollevent.fd);
+}
+
+void process_events(lfs_server_context * server_context)
+{
+    for (int i = 0; i < server_context->pollfds_container->size; i++)
+    {
+        struct pollfd pollevent = server_context->pollfds_container->pfds[i];
 
         if (pollevent.revents == 0)
         {
@@ -69,33 +89,27 @@ void process_poll_fds(lfs_server_context * server_context, int hsockfd)
         // handle POLLIN
         if (pollevent.revents & POLLIN)
         {
-            if (pollevent.fd == hsockfd)
-            {
-                handle_accept(server_context, hsockfd);
-            } else
-            {
-                handle_recv(server_context->pollfds, pollevent.fd);
-            }
+            process_pollin(server_context, pollevent);
         }
 
         // handle hang up
         if (pollevent.revents & POLLHUP)
         {
-            perror("POLLHUP");
-            lfs_pollfds_dynamic_remove(server_context->pollfds, pollevent.fd);
+            process_pollhup(server_context, pollevent);
             continue;
         }
 
         // handle POLLERR
         if (pollevent.revents & POLLERR)
         {
+            process_pollerr(server_context, pollevent);
             perror("POLLERR");
-            exit(-1);
         }
     }
 }
 
-size_t lfs_listen(const char* host, const char* port) {
+int get_tcp_socket(const char* host, const char* port)
+{
     struct addrinfo hints = { 0 };
     struct addrinfo *servinfo;
     int sockfd = -1;
@@ -137,6 +151,11 @@ size_t lfs_listen(const char* host, const char* port) {
         return -1;
     }
 
+    return sockfd;
+}
+
+int lfs_listen(const char* host, const char* port) {
+    int sockfd = get_tcp_socket(host, port);
     int listenres = listen(sockfd, listen_backlog);
     if (listenres == -1)
     {
@@ -145,20 +164,23 @@ size_t lfs_listen(const char* host, const char* port) {
     }
 
     lfs_server_context* server_context = lfs_server_context_init();
+    server_context->sockfd = sockfd;
+
     struct pollfd pollfd = { 0 };
-    pollfd.fd = sockfd;
+    pollfd.fd = server_context->sockfd;
     pollfd.events = POLLIN;
-    lfs_pollfds_dynamic_add(server_context->pollfds, pollfd);
+
+    lfs_pollfds_dynamic_add(server_context->pollfds_container, pollfd);
 
     for (;;)
     {
-        int pollerr = poll(server_context->pollfds->pfds, server_context->pollfds->size, -1);
+        int pollerr = poll(server_context->pollfds_container->pfds, server_context->pollfds_container->size, -1);
         if (pollerr == -1)
         {
             perror("poll");
             exit(1);
         }
 
-        process_poll_fds(server_context, sockfd);
+        process_events(server_context);
     }
 }

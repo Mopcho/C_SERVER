@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
     }
     else if (strcmp(command_lower, "listen") == 0)
     {
-        result = (int)lfs_listen(host, port);
+        result = lfs_listen(host, port);
     }
     else if (strcmp(command_lower, "yap") == 0)
     {
