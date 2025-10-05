@@ -7,6 +7,9 @@
 #include <poll.h>
 
 #include "LFS/server.h"
+
+#include <string.h>
+
 #include "LFS/pollfds_dynamic.h"
 #include "LFS/connection.h"
 #include "LFS/server_context.h"
@@ -39,8 +42,7 @@ void accpet_connection(lfs_server_context * server_context)
 
 int receive_message(lfs_connection * connection)
 {
-    ssize_t readbytes = recv(connection->sockfd, connection->readbuf, sizeof connection->readbuf - 1, 0);
-    connection->readbuf[readbytes] = '\0';
+    ssize_t readbytes = recv(connection->sockfd, connection->readbuf, sizeof connection->readbuf, 0);
     connection->readbytes += readbytes;
     if (readbytes == -1 || readbytes == 0)
     {
@@ -48,56 +50,82 @@ int receive_message(lfs_connection * connection)
         return -1;
     }
     printf("PID message received: [%i]: %s \n", getpid(), connection->readbuf);
+
+    const char* placeholder_response = "some placeholder response for testing\n";
+    strcpy(&connection->writebuf[connection->writtenbytes], placeholder_response);
+
     return 0;
 }
 
-void process_pollin(lfs_server_context * server_context, struct pollfd pollevent)
+int send_message(lfs_connection * connection)
 {
-    if (pollevent.fd == server_context->sockfd)
+    size_t status = send(connection->sockfd, connection->writebuf, sizeof connection->writebuf, 0);
+    memset(connection->writebuf, 0, sizeof connection->writebuf); // TODO: RW Lock here
+    return (int)status;
+}
+
+void process_pollin(lfs_server_context * server_context, struct pollfd * pollevent)
+{
+    if (pollevent->fd == server_context->sockfd)
     {
         accpet_connection(server_context);
     } else
     {
-        lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, pollevent.fd);
+        lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, pollevent->fd);
         int status = receive_message(connection);
-        if (!status)
+        if (status == -1)
         {
             close(connection->sockfd);
             lfs_pollfds_dynamic_remove(server_context->pollfds_container, connection->sockfd);
+            return;
         }
+        pollevent->events |= POLLOUT;
     }
 }
 
-void process_pollhup(lfs_server_context * server_context, struct pollfd pollevent)
+void process_pollhup(lfs_server_context * server_context, struct pollfd * pollevent)
 {
-    lfs_pollfds_dynamic_remove(server_context->pollfds_container, pollevent.fd);
+    lfs_pollfds_dynamic_remove(server_context->pollfds_container, pollevent->fd);
 }
 
-void process_pollerr(lfs_server_context * server_context, struct pollfd pollevent)
+void process_pollerr(lfs_server_context * server_context, struct pollfd * pollevent)
 {
-    lfs_pollfds_dynamic_remove(server_context->pollfds_container, pollevent.fd);
+    lfs_pollfds_dynamic_remove(server_context->pollfds_container, pollevent->fd);
+}
+
+int process_pollout(lfs_server_context * server_context, struct pollfd * pollevent)
+{
+    lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, pollevent->fd);
+    int status = send_message(connection);
+
+    return status;
 }
 
 void process_events(lfs_server_context * server_context)
 {
     for (int i = 0; i < server_context->pollfds_container->size; i++)
     {
-        struct pollfd pollevent = server_context->pollfds_container->pfds[i];
+        struct pollfd * pollevent = &server_context->pollfds_container->pfds[i];
 
-        if (pollevent.revents == 0) { continue; }
+        if (pollevent->revents == 0) { continue; }
 
-        if (pollevent.revents & POLLIN)
+        if (pollevent->revents & POLLIN)
         {
             process_pollin(server_context, pollevent);
         }
 
-        if (pollevent.revents & POLLHUP)
+        if (pollevent->revents & POLLOUT)
+        {
+            process_pollout(server_context, pollevent);
+        }
+
+        if (pollevent->revents & POLLHUP)
         {
             process_pollhup(server_context, pollevent);
             continue;
         }
 
-        if (pollevent.revents & POLLERR)
+        if (pollevent->revents & POLLERR)
         {
             process_pollerr(server_context, pollevent);
             perror("POLLERR");

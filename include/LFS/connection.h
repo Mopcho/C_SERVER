@@ -8,6 +8,7 @@ typedef struct
     char readbuf[1024];
     char writebuf[1024];
     size_t readbytes;
+    size_t writtenbytes;
     int sockfd;
 } lfs_connection;
 
