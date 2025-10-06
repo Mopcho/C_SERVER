@@ -12,6 +12,7 @@
 
 #include "LFS/pollfds_dynamic.h"
 #include "LFS/connection.h"
+#include "LFS/Logger.h"
 #include "LFS/server_context.h"
 
 const int listen_backlog = 5;
@@ -98,14 +99,20 @@ int process_pollout(lfs_server_context * server_context, struct pollfd * polleve
     lfs_connection * connection = lfs_server_context_get_connection_by_fd(server_context, pollevent->fd);
     int status = send_message(connection);
 
+    if (status)
+    {
+        pollevent->events &= ~POLLOUT;
+    }
+
     return status;
 }
 
-void process_events(lfs_server_context * server_context)
+void process_pollevents(lfs_server_context * server_context)
 {
     for (int i = 0; i < server_context->pollfds_container->size; i++)
     {
         struct pollfd * pollevent = &server_context->pollfds_container->pfds[i];
+        lfs_LOG_DEBUG("processing pollfd socket: %i; revents mask: %i \n", pollevent->fd, pollevent->revents);
 
         if (pollevent->revents == 0) { continue; }
 
@@ -206,6 +213,6 @@ int lfs_listen(const char* host, const char* port) {
             exit(1);
         }
 
-        process_events(server_context);
+        process_pollevents(server_context);
     }
 }
