@@ -1,6 +1,5 @@
 #include <netdb.h>
 #include <cstdio>
-#include <cstring>
 
 namespace lfs::UDP
 {

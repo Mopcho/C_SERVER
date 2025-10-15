@@ -34,8 +34,7 @@ namespace lfs::UDP
             return -1;
         }
 
-        char buf[1024];
-        memset(buf, 0, sizeof buf);
+        char buf[1024] {};
 
         ssize_t recvfromres;
         while ((recvfromres = recvfrom(socketfd, buf, sizeof buf, 0, nullptr, nullptr)) != -1)

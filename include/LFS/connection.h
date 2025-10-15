@@ -23,16 +23,11 @@ namespace lfs
 
         ssize_t flushWriteBuffer();
 
-        template <size_t N>
-        void queueBufferWrite(std::array<char, N> buf)
-        {
-            m_writebuf.reserve(m_writebuf.capacity() + N);
-            m_writebuf.insert(m_writebuf.end(), buf.begin(), buf.end()); // TODO: This will do a copy. Find smth more performant
-        }
+        void queueBufferWrite(const char* buf, size_t n);
 
         int receive();
         void parse_data_chunk(const char* buf);
-        int get_sockfd();
+        int get_sockfd() const;
     private:
         int m_sockfd;
         RequestMetadata metadata;

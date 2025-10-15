@@ -8,7 +8,7 @@ namespace lfs
     {
     public:
         Client(std::string host, std::string port);
-        void connect();
+        void connect() const;
     private:
         std::string m_host;
         std::string m_port;

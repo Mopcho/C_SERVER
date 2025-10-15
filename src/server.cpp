@@ -15,9 +15,9 @@ const int lfs::listen_backlog = 5;
 void lfs::Server::accpet_connection()
 {
     // accept
-    sockaddr_storage incomingcon;
+    sockaddr_storage incomingcon {};
     socklen_t incomingcon_size = sizeof incomingcon;
-    int newsockfd = accept(m_sockfd, (struct sockaddr*)&incomingcon, &incomingcon_size);
+    int newsockfd = accept(m_sockfd, reinterpret_cast<struct sockaddr*>(&incomingcon), &incomingcon_size);
     if (newsockfd == -1)
     {
         perror("accept");
@@ -52,9 +52,8 @@ void lfs::Server::process_pollin(pollfd& pollevent)
             return;
         }
 
-        std::array<char, 20> msg {};
-        msg.fill('a');
-        connection->second->queueBufferWrite(msg);
+        const char* msg = "lalala\n";
+        connection->second->queueBufferWrite(msg, std::strlen(msg));
 
         pollevent.events |= POLLOUT;
     }
@@ -72,12 +71,12 @@ void lfs::Server::remove_connection(int socketfd)
     }
 }
 
-void lfs::Server::process_pollhup(pollfd& pollevent)
+void lfs::Server::process_pollhup(const pollfd& pollevent)
 {
     remove_connection(pollevent.fd);
 }
 
-void lfs::Server::process_pollerr(pollfd& pollevent)
+void lfs::Server::process_pollerr(const pollfd& pollevent)
 {
     remove_connection(pollevent.fd);
 }

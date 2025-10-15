@@ -7,7 +7,7 @@
 
 lfs::Client::Client(std::string host, std::string port) : m_host(std::move(host)), m_port(std::move(port)) {}
 
-void lfs::Client::connect()
+void lfs::Client::connect() const
 {
     addrinfo hints {};
     addrinfo * servinfo;

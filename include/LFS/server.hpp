@@ -28,8 +28,8 @@ namespace lfs
 
         void process_pollevents();
         void process_pollout(pollfd& pollevent);
-        void process_pollerr(pollfd& pollevent);
-        void process_pollhup(pollfd& pollevent);
+        void process_pollerr(const pollfd& pollevent);
+        void process_pollhup(const pollfd& pollevent);
         void process_pollin(pollfd& pollevent);
         void accpet_connection();
         void remove_connection(int socketfd);
