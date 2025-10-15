@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
-project(C_HTTP C)
+project(C_HTTP CXX)
 
-set(CMAKE_C_STANDARD 11)
+find_package(fmt)
 
-set(SOURCES main.c src/pollfds_dynamic.c src/server.c src/client.c src/udp_yapper.c src/udp_listener.c src/connection.c src/server_context.c)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(SOURCES main.cpp src/server.cpp src/client.cpp src/udp_yapper.cpp src/udp_listener.cpp src/connection.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
-include_directories(${PROJECT_NAME} include)
-add_compile_definitions(lfs_LOG_LEVEL=5)
+add_compile_definitions(LFS_LOG_LEVEL=5)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
+target_include_directories(${PROJECT_NAME} PUBLIC include)

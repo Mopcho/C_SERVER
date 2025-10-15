@@ -1,0 +1,38 @@
+#include <netdb.h>
+#include <cstdio>
+#include <cstring>
+
+namespace lfs::UDP
+{
+    int yap(const char* host, const char* port, const char* msgbuf, size_t msgbuf_size)
+    {
+        addrinfo hints {};
+        addrinfo* servinfo;
+
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_DGRAM;
+
+        if (getaddrinfo(host, port, &hints, &servinfo) == -1)
+        {
+            perror("getaddrinfo");
+            return -1;
+        }
+
+        int socketfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+        if (socketfd == -1)
+        {
+            perror("socket");
+            return -1;
+        }
+
+        if (sendto(socketfd, msgbuf, msgbuf_size, 0, servinfo->ai_addr, servinfo->ai_addrlen) == -1)
+        {
+            perror("sendto");
+            return -1;
+        }
+
+        freeaddrinfo(servinfo);
+
+        return 0;
+    }
+}

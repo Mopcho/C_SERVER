@@ -1,30 +1,45 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include <stddef.h>
+#include <string>
+#include <unistd.h>
+#include <unordered_map>
+#include <vector>
+#include <sys/types.h>
 
-typedef struct
+#include "Request.hpp"
+
+namespace lfs
 {
-    char readbuf[1024];
-    char writebuf[1024];
-    size_t readbytes;
-    size_t writtenbytes;
-    int sockfd;
-} lfs_connection;
+    class Connection
+    {
+    public:
+        explicit Connection(int socketfd);
 
-typedef struct
-{
-    lfs_connection * connections;
-    int cap;
-    int size;
-} lfs_connections_dynamic;
+        ~Connection()
+        {
+            close(m_sockfd);
+        }
 
-lfs_connections_dynamic* lfs_connections_dynamic_init();
+        ssize_t flushWriteBuffer();
 
-void lfs_connections_dynamic_add(lfs_connections_dynamic * obj, lfs_connection toadd);
+        template <size_t N>
+        void queueBufferWrite(std::array<char, N> buf)
+        {
+            m_writebuf.reserve(m_writebuf.capacity() + N);
+            m_writebuf.insert(m_writebuf.end(), buf.begin(), buf.end()); // TODO: This will do a copy. Find smth more performant
+        }
 
-void lfs_connections_dynamic_remove(lfs_connections_dynamic * obj, int sockfd_toremove);
-
-void lfs_connections_dynamic_destruct(lfs_connections_dynamic * obj);
+        int receive();
+        void parse_data_chunk(const char* buf);
+        int get_sockfd();
+    private:
+        int m_sockfd;
+        RequestMetadata metadata;
+        std::string body;
+        std::unordered_map<std::string, std::string> headers;
+        std::vector<char> m_writebuf;
+    };
+}
 
 #endif //CONNECTION_H
