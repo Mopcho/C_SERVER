@@ -162,7 +162,7 @@ void lfs::Server::close() const
     std::array<char, 1024> buf {};
     for (;;)
     {
-        int status = read(m_sockfd, buf.data(), buf.size();
+        int status = read(m_sockfd, buf.data(), buf.size());
         if (status == 0)
         {
             break;
@@ -170,7 +170,7 @@ void lfs::Server::close() const
 
         if (status == -1)
         {
-            LFS_LOG_WARNING("error reading from scoket");
+            LFS_LOG_WARNING("error reading from scoket", NULL);
             break;
         }
     }

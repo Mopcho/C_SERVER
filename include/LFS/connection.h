@@ -7,7 +7,7 @@
 #include <vector>
 #include <sys/types.h>
 
-#include "Request.hpp"
+#include "request.hpp"
 
 namespace lfs
 {
@@ -34,6 +34,7 @@ namespace lfs
         std::string body;
         std::unordered_map<std::string, std::string> headers;
         std::vector<char> m_writebuf;
+        Request request;
     };
 }
 

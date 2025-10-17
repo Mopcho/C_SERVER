@@ -3,24 +3,17 @@
 #include <array>
 #include <sys/socket.h>
 
-#include "LFS/logger.hpp"
-
 lfs::Connection::Connection(int socketfd) :  m_sockfd(socketfd) {}
 
 int lfs::Connection::receive()
 {
-    std::array<char, 1024> buf {};
-    if (recv(m_sockfd, buf.data(), buf.size(), 0) == -1) {
+    std::array<char, 32> buf {};
+    ssize_t bytes_read = recv(m_sockfd, buf.data(), buf.size(), 0);
+    if (bytes_read == -1) {
         return -1;
     }
-    parse_data_chunk(buf.data());
+    request.parse_bytes(buf.data(), bytes_read);
     return 0;
-
-}
-
-void lfs::Connection::parse_data_chunk(const char* buf)
-{
-    LFS_LOG_DEBUG("Parsing data chunk: %s \n", buf);
 }
 
 int lfs::Connection::get_sockfd() const
