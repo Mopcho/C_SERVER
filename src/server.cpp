@@ -22,8 +22,7 @@ void lfs::Server::accpet_connection()
     int newsockfd = accept(m_sockfd, reinterpret_cast<struct sockaddr*>(&incomingcon), &incomingcon_size);
     if (newsockfd == -1)
     {
-        perror("accept");
-        exit(-1);
+        throw std::runtime_error("error trying to accept connection");
     }
 
     // create pollfd and add it to the server context
@@ -155,4 +154,31 @@ int lfs::Server::listen()
 
         process_pollevents();
     }
+}
+
+void lfs::Server::close() const
+{
+    shutdown(m_sockfd, SHUT_WR);
+    std::array<char, 1024> buf {};
+    for (;;)
+    {
+        int status = read(m_sockfd, buf.data(), buf.size();
+        if (status == 0)
+        {
+            break;
+        }
+
+        if (status == -1)
+        {
+            LFS_LOG_WARNING("error reading from scoket");
+            break;
+        }
+    }
+
+    ::close(m_sockfd);
+}
+
+lfs::Server::~Server()
+{
+    close();
 }

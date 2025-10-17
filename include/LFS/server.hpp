@@ -19,6 +19,9 @@ namespace lfs
     public:
         Server(std::string host, std::string port);
         int listen();
+        void close() const;
+        ~Server();
+
     private:
         std::string m_host;
         std::string m_port;
