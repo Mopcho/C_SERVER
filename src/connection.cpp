@@ -7,7 +7,7 @@ lfs::Connection::Connection(int socketfd) :  m_sockfd(socketfd) {}
 
 int lfs::Connection::receive()
 {
-    std::array<char, 32> buf {};
+    std::array<char, 4096> buf {};
     ssize_t bytes_read = recv(m_sockfd, buf.data(), buf.size(), 0);
     if (bytes_read == -1) {
         return -1;

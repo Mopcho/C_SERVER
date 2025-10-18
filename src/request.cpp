@@ -12,7 +12,7 @@ namespace lfs
     void Request::parse_bytes(const char* buf, size_t n)
     {
         std::string str_buf(buf, n);
-        std::stringstream ss(str_buf);
+        std::istringstream ss(str_buf);
         std::string line;
 
         // parse request line
@@ -42,6 +42,9 @@ namespace lfs
                 trim(key);
                 trim(value);
                 m_headers[key] = value;
+            } else
+            {
+                LFS_LOG_WARNING("colon position not found during parsing of header line", NULL);
             }
         }
 
