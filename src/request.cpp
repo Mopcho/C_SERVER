@@ -24,8 +24,8 @@ namespace lfs
             size_t route_end = str_buf.find(' ', method_end + 1);
 
             m_metadata.method = str_buf.substr(line_start, method_end);
-            m_metadata.route = str_buf.substr(method_end, route_end - method_end);
-            m_metadata.version = str_buf.substr(route_end, line_end - route_end);
+            m_metadata.route = str_buf.substr(method_end + 1, route_end - method_end - 1);
+            m_metadata.version = str_buf.substr(route_end + 1, line_end - route_end - 1);
 
             line_start = line_end + 1;
             line_end = str_buf.find('\n', line_start);
@@ -57,6 +57,7 @@ namespace lfs
                 LFS_LOG_WARNING("colon position not found during parsing of header line", NULL);
             }
 
+            m_received_content_bytes += line_end - line_start;
             line_start = line_end + 1;
             line_end = str_buf.find('\n', line_start);
         }
@@ -65,5 +66,18 @@ namespace lfs
 
         // parse content
         m_content += str_buf.substr(line_end, std::string::npos);
+    }
+
+    bool Request::has_received_all_content()
+    {
+        try
+        {
+            int content_length = stoi(m_headers.at("Content-Length"));
+            return m_received_content_bytes >= content_length;
+        } catch (std::out_of_range & ex)
+        {
+            LFS_LOG_ERROR("Content-Length header not present in request", NULL);
+            return false;
+        }
     }
 }

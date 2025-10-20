@@ -21,12 +21,14 @@ namespace  lfs
     {
     public:
         Request();
-
         void parse_bytes(const char* buf, size_t n);
-    private:
+        bool has_received_all_content();
+
         std::unordered_map<std::string, std::string> m_headers {};
         RequestMetadata m_metadata {};
         std::string m_content {};
+        size_t m_received_content_bytes { 0 };
+    private:
         int m_parse_mode { LFS_RP_REQ_LINE };
     };
 }

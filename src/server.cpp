@@ -47,16 +47,27 @@ void lfs::Server::process_pollin(pollfd& pollevent)
             return;
         }
 
-        if (connection->second->receive() == -1)
+        size_t bytes_read = connection->second->receive();
+        if (bytes_read == -1 || bytes_read == 0)
         {
             remove_connection(connection->second->get_sockfd());
             return;
         }
 
-        const char* msg = "lalala\n";
-        connection->second->queueBufferWrite(msg, std::strlen(msg));
-
-        pollevent.events |= POLLOUT;
+        Request* request = connection->second->m_request.get();
+        Response* response = connection->second->m_response.get();
+        if (request->has_received_all_content())
+        {
+            try
+            {
+                HandlerFn handler = m_handlers.at(request->m_metadata.route);
+                handler(request, response);
+                pollevent.events |= POLLOUT;
+            } catch (std::out_of_range & err)
+            {
+                LFS_LOG_DEBUG("No handler found\n", NULL);
+            }
+        }
     }
 }
 
@@ -91,8 +102,10 @@ void lfs::Server::process_pollout(pollfd& pollevent)
         return;
     }
 
-    if (conn->second->flushWriteBuffer())
+    Response* response = conn->second->m_response.get();
+    if (!response->m_response_buffer.empty())
     {
+        ::send(response->m_sockfd, response->m_response_buffer.data(), response->m_response_buffer.size(), 0);
         pollevent.events &= ~POLLOUT;
     }
 }
@@ -181,4 +194,9 @@ void lfs::Server::close() const
 lfs::Server::~Server()
 {
     close();
+}
+
+void lfs::Server::handle(const std::string & route, HandlerFn handler)
+{
+    m_handlers[route] = std::move(handler);
 }

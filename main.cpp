@@ -42,6 +42,12 @@ int main(int argc, char* argv[])
     else if (command == "listen")
     {
         auto server = std::make_unique<lfs::Server>(host, port);
+
+        server.get()->handle("/api/users", [](lfs::Request* req, lfs::Response* res)
+        {
+            res->send(R"({"user": {"id": 1042,"username": "mopcho","email": "mopcho@example.com"})");
+        });
+
         return_code = server->listen();
     }
     else if (command == "yap")

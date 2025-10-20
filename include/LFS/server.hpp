@@ -7,12 +7,15 @@
 #include <sys/poll.h>
 #include <unordered_map>
 #include "connection.h"
+#include <functional>
 
 #define LFS_METADATA_SEPARATOR_TOKEN "\n\n"
 
 namespace lfs
 {
     extern const int listen_backlog;
+
+    using HandlerFn = std::function<void(Request* req, Response* res)>;
 
     class Server
     {
@@ -21,6 +24,7 @@ namespace lfs
         int listen();
         void close() const;
         ~Server();
+        void handle(const std::string & route, HandlerFn handler);
 
     private:
         std::string m_host;
@@ -28,6 +32,7 @@ namespace lfs
         int m_sockfd;
         std::vector<pollfd> m_pollfds {};
         std::unordered_map<int, std::unique_ptr<Connection>> m_connections {};
+        std::unordered_map<std::string, HandlerFn> m_handlers {};
 
         void process_pollevents();
         void process_pollout(pollfd& pollevent);
