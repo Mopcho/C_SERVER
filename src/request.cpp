@@ -12,33 +12,43 @@ namespace lfs
     void Request::parse_bytes(const char* buf, size_t n)
     {
         std::string str_buf(buf, n);
-        std::istringstream ss(str_buf);
-        std::string line;
+
+        size_t line_start = 0;
+        size_t line_end = str_buf.find('\n', line_start);
 
         // parse request line
         if (m_metadata.method.empty())
         {
             // Request line
-            std::getline(ss, line);
-            std::stringstream line_ss(line);
-            line_ss >> m_metadata.method >> m_metadata.route >> m_metadata.version;
+            size_t method_end = str_buf.find(' ', line_start);
+            size_t route_end = str_buf.find(' ', method_end + 1);
+
+            m_metadata.method = str_buf.substr(line_start, method_end);
+            m_metadata.route = str_buf.substr(method_end, route_end - method_end);
+            m_metadata.version = str_buf.substr(route_end, line_end - route_end);
+
+            line_start = line_end + 1;
+            line_end = str_buf.find('\n', line_start);
+
             m_parse_mode = LFS_RP_HEADERS;
         }
 
         // parse headers
-        while (m_parse_mode == LFS_RP_HEADERS && std::getline(ss, line))
+        while (m_parse_mode == LFS_RP_HEADERS && line_end != std::string::npos)
         {
-            if (line.empty())
+            std::string line_str { str_buf.substr(line_start, line_end - line_start) };
+
+            if (line_str.empty())
             {
                 m_parse_mode = LFS_RP_CONTENT;
                 break;
             }
 
-            size_t colon_pos = line.find(':');
+            size_t colon_pos = str_buf.find(':', line_start);
             if (colon_pos != std::string::npos)
             {
-                std::string key =  line.substr(0, colon_pos);
-                std::string value = line.substr(colon_pos + 1, std::string::npos);
+                std::string key =  str_buf.substr(line_start, colon_pos - line_start);
+                std::string value = str_buf.substr(colon_pos + 1, line_end - colon_pos);
                 trim(key);
                 trim(value);
                 m_headers[key] = value;
@@ -46,13 +56,14 @@ namespace lfs
             {
                 LFS_LOG_WARNING("colon position not found during parsing of header line", NULL);
             }
+
+            line_start = line_end + 1;
+            line_end = str_buf.find('\n', line_start);
         }
 
         LFS_LOG_DEBUG("parsed request", NULL);
 
         // parse content
-        std::streampos current_ss_pos = ss.tellg();
-        std::string remaining = ss.str().substr(current_ss_pos, std::string::npos);
-        m_content += remaining;
+        m_content += str_buf.substr(line_end, std::string::npos);
     }
 }
