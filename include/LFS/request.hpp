@@ -10,13 +10,6 @@
 
 namespace  lfs
 {
-    struct RequestMetadata
-    {
-        std::string route;
-        std::string method;
-        std::string version;
-    };
-
     class Request
     {
     public:
@@ -25,7 +18,9 @@ namespace  lfs
         bool has_received_all_content();
 
         std::unordered_map<std::string, std::string> m_headers {};
-        RequestMetadata m_metadata {};
+        std::string m_route;
+        std::string m_method;
+        std::string m_version;
         std::string m_content {};
         size_t m_received_content_bytes { 0 };
     private:

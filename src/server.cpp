@@ -60,7 +60,7 @@ void lfs::Server::process_pollin(pollfd& pollevent)
         {
             try
             {
-                HandlerFn handler = m_handlers.at(request->m_metadata.route);
+                HandlerFn handler = m_handlers.at(request->m_route);
                 handler(request, response);
                 pollevent.events |= POLLOUT;
             } catch (std::out_of_range & err)

@@ -17,15 +17,15 @@ namespace lfs
         size_t line_end = str_buf.find('\n', line_start);
 
         // parse request line
-        if (m_metadata.method.empty())
+        if (m_method.empty())
         {
             // Request line
             size_t method_end = str_buf.find(' ', line_start);
             size_t route_end = str_buf.find(' ', method_end + 1);
 
-            m_metadata.method = str_buf.substr(line_start, method_end);
-            m_metadata.route = str_buf.substr(method_end + 1, route_end - method_end - 1);
-            m_metadata.version = str_buf.substr(route_end + 1, line_end - route_end - 1);
+            m_method = str_buf.substr(line_start, method_end);
+            m_route = str_buf.substr(method_end + 1, route_end - method_end - 1);
+            m_version = str_buf.substr(route_end + 1, line_end - route_end - 1);
 
             line_start = line_end + 1;
             line_end = str_buf.find('\n', line_start);
