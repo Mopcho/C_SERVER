@@ -25,8 +25,7 @@ void lfs::Server::accpet_connection()
         throw std::runtime_error("error trying to accept connection");
     }
 
-    // create pollfd and add it to the server context
-    m_pollfds.emplace_back(newsockfd, POLLIN);
+    pollfd_add(newsockfd, POLLIN);
 
     // create connection and add it to the server context
     m_connections[newsockfd] = std::make_unique<Connection>(newsockfd);
@@ -50,7 +49,7 @@ void lfs::Server::process_pollin(pollfd& pollevent)
         size_t bytes_read = connection->second->receive();
         if (bytes_read == -1 || bytes_read == 0)
         {
-            remove_connection(connection->second->get_sockfd());
+            remove_connection(connection->second->m_sockfd);
             return;
         }
 
@@ -63,7 +62,7 @@ void lfs::Server::process_pollin(pollfd& pollevent)
                 HandlerFn handler = m_handlers.at(request->m_route);
                 handler(request, response);
                 pollevent.events |= POLLOUT;
-            } catch (std::out_of_range & err)
+            } catch (std::out_of_range &)
             {
                 LFS_LOG_DEBUG("No handler found\n", NULL);
             }
@@ -74,9 +73,19 @@ void lfs::Server::process_pollin(pollfd& pollevent)
 void lfs::Server::remove_connection(int socketfd)
 {
     m_connections.erase(socketfd);
+    pollfd_remove(socketfd);
+}
+
+void lfs::Server::pollfd_add(int sockfd, int eventflags)
+{
+    m_pollfds.emplace_back(sockfd, eventflags);
+}
+
+void lfs::Server::pollfd_remove(int sockfd)
+{
     for (int i = 0; i < m_pollfds.size(); i++)
     {
-        if (m_pollfds[i].fd == socketfd)
+        if (m_pollfds[i].fd == sockfd)
         {
             m_pollfds.erase(m_pollfds.begin() + i);
         }
@@ -105,7 +114,7 @@ void lfs::Server::process_pollout(pollfd& pollevent)
     Response* response = conn->second->m_response.get();
     if (!response->m_response_buffer.empty())
     {
-        ::send(response->m_sockfd, response->m_response_buffer.data(), response->m_response_buffer.size(), 0);
+        ::send(conn->second->m_sockfd, response->m_response_buffer.data(), response->m_response_buffer.size(), 0);
         pollevent.events &= ~POLLOUT;
     }
 }
@@ -137,12 +146,12 @@ void lfs::Server::process_pollevents()
         if (pollevent.revents & POLLERR)
         {
             process_pollerr(pollevent);
-            perror("POLLERR");
+            LFS_LOG_ERROR("POLLERR for sockfd: %d\n", pollevent.fd);
         }
     }
 }
 
-lfs::Server::Server(std::string host, std::string port) : m_host(std::move(host)), m_port(std::move(port))
+lfs::Server::Server(std::string host, std::string port) : m_port(std::move(port)), m_host(std::move(host))
 {
     m_pollfds.reserve(20);
     m_connections.reserve(20);
@@ -156,7 +165,7 @@ int lfs::Server::listen()
         throw std::runtime_error(fmt::format("error trying to listen on host: {:s} and port: {:s}; errno: {:d}", m_host, m_port, errno));
     }
 
-    m_pollfds.emplace_back(m_sockfd, POLLIN);
+    pollfd_add(m_sockfd, POLLIN);
 
     for (;;)
     {
@@ -175,7 +184,7 @@ void lfs::Server::close() const
     std::array<char, 1024> buf {};
     for (;;)
     {
-        int status = read(m_sockfd, buf.data(), buf.size());
+        ssize_t status = read(m_sockfd, buf.data(), buf.size());
         if (status == 0)
         {
             break;

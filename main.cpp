@@ -7,23 +7,11 @@
 #include "LFS/udp_yapper.hpp"
 #include "LFS/udp_listener.hpp"
 
-void no_zombie_processes() // TODO: We can move this as an option to the server
-{
-    struct sigaction sa {};
-    sa.sa_handler = SIG_DFL;
-    sa.sa_flags = SA_NOCLDWAIT;
-    if (sigaction(SIGCHLD, &sa, nullptr) == -1)
-    {
-        perror("sigaction");
-        exit(-1);
-    }
-}
-
 int main(int argc, char* argv[])
 {
     if (argc < 4)
     {
-        printf("Wrong count of arguments passed. Expected at least 3 [command(connect/listen)] [host] [port].");
+        printf("Wrong count of arguments passed. Expected at least 3 [command(connect/listen/yap/listen_yap)] [host] [port].");
         exit(1);
     }
 

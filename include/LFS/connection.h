@@ -14,17 +14,15 @@ namespace lfs
     {
     public:
         explicit Connection(int socketfd);
-
         ~Connection()
         {
             close(m_sockfd);
         }
+        int receive() const;
 
-        int receive();
-        int get_sockfd() const;
+        int m_sockfd;
         std::shared_ptr<Request> m_request;
         std::shared_ptr<Response> m_response;
-        int m_sockfd;
     };
 }
 

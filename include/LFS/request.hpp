@@ -15,7 +15,7 @@ namespace  lfs
     public:
         Request();
         void parse_bytes(const char* buf, size_t n);
-        bool has_received_all_content();
+        bool has_received_all_content() const;
 
         std::unordered_map<std::string, std::string> m_headers {};
         std::string m_route;

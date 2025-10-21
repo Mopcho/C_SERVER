@@ -26,9 +26,9 @@ namespace lfs
         ~Server();
         void handle(const std::string & route, HandlerFn handler);
 
-    private:
-        std::string m_host;
         std::string m_port;
+        std::string m_host;
+    private:
         int m_sockfd;
         std::vector<pollfd> m_pollfds {};
         std::unordered_map<int, std::unique_ptr<Connection>> m_connections {};
@@ -39,8 +39,12 @@ namespace lfs
         void process_pollerr(const pollfd& pollevent);
         void process_pollhup(const pollfd& pollevent);
         void process_pollin(pollfd& pollevent);
+
         void accpet_connection();
         void remove_connection(int socketfd);
+
+        void pollfd_add(int sockfd, int eventflags);
+        void pollfd_remove(int sockfd);
     };
 }
 

@@ -68,13 +68,13 @@ namespace lfs
         m_content += str_buf.substr(line_end, std::string::npos);
     }
 
-    bool Request::has_received_all_content()
+    bool Request::has_received_all_content() const
     {
         try
         {
             int content_length = stoi(m_headers.at("Content-Length"));
             return m_received_content_bytes >= content_length;
-        } catch (std::out_of_range & ex)
+        } catch (std::out_of_range &)
         {
             LFS_LOG_ERROR("Content-Length header not present in request", NULL);
             return false;
