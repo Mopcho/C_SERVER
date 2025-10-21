@@ -16,26 +16,24 @@ const int lfs::listen_backlog = 5;
 
 void lfs::Server::accpet_connection()
 {
-    // accept
     sockaddr_storage incomingcon {};
     socklen_t incomingcon_size = sizeof incomingcon;
-    int newsockfd = accept(m_sockfd, reinterpret_cast<struct sockaddr*>(&incomingcon), &incomingcon_size);
+    int newsockfd = accept(m_serversockfd, reinterpret_cast<struct sockaddr*>(&incomingcon), &incomingcon_size);
     if (newsockfd == -1)
     {
+        LFS_LOG_ERROR("Error accepting connection errno: %d\n", errno);
         throw std::runtime_error("error trying to accept connection");
     }
 
     pollfd_add(newsockfd, POLLIN);
-
-    // create connection and add it to the server context
     m_connections[newsockfd] = std::make_unique<Connection>(newsockfd);
 }
 
 void lfs::Server::process_pollin(pollfd& pollevent)
 {
-    if (pollevent.fd == m_sockfd)
+    if (pollevent.fd == m_serversockfd)
     {
-        accpet_connection();
+        try { accpet_connection(); } catch (std::exception&) {  }
     }
     else
     {
@@ -155,17 +153,17 @@ lfs::Server::Server(std::string host, std::string port) : m_port(std::move(port)
 {
     m_pollfds.reserve(20);
     m_connections.reserve(20);
-    m_sockfd = get_tcp_socket(m_host, m_port);
+    m_serversockfd = get_tcp_socket(m_host, m_port);
 }
 
 int lfs::Server::listen()
 {
-    if (::listen(m_sockfd, listen_backlog) == -1)
+    if (::listen(m_serversockfd, listen_backlog) == -1)
     {
         throw std::runtime_error(fmt::format("error trying to listen on host: {:s} and port: {:s}; errno: {:d}", m_host, m_port, errno));
     }
 
-    pollfd_add(m_sockfd, POLLIN);
+    pollfd_add(m_serversockfd, POLLIN);
 
     for (;;)
     {
@@ -180,11 +178,11 @@ int lfs::Server::listen()
 
 void lfs::Server::close() const
 {
-    shutdown(m_sockfd, SHUT_WR);
+    shutdown(m_serversockfd, SHUT_WR);
     std::array<char, 1024> buf {};
     for (;;)
     {
-        ssize_t status = read(m_sockfd, buf.data(), buf.size());
+        ssize_t status = read(m_serversockfd, buf.data(), buf.size());
         if (status == 0)
         {
             break;
@@ -197,7 +195,7 @@ void lfs::Server::close() const
         }
     }
 
-    ::close(m_sockfd);
+    ::close(m_serversockfd);
 }
 
 lfs::Server::~Server()

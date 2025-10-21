@@ -29,7 +29,7 @@ namespace lfs
         std::string m_port;
         std::string m_host;
     private:
-        int m_sockfd;
+        int m_serversockfd;
         std::vector<pollfd> m_pollfds {};
         std::unordered_map<int, std::unique_ptr<Connection>> m_connections {};
         std::unordered_map<std::string, HandlerFn> m_handlers {};

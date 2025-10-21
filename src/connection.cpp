@@ -3,9 +3,7 @@
 #include <array>
 #include <sys/socket.h>
 
-lfs::Connection::Connection(int socketfd) : m_sockfd(socketfd), m_request(std::make_shared<Request>()), m_response(std::make_shared<Response>())
-{
-}
+lfs::Connection::Connection(int socketfd) : m_sockfd(socketfd), m_request(std::make_shared<Request>()), m_response(std::make_shared<Response>()) {}
 
 // TODO: What if 4096 bytes in and we still reading headers
 int lfs::Connection::receive() const
