@@ -21,4 +21,14 @@ inline void trim(std::string& s)
     rtrim(s);
 }
 
+inline void remove_tailing_carriage_return(std::string& str)
+{
+    size_t pos = str.find('\r', str.size() - 1);
+
+    if (pos != std::string::npos)
+    {
+        str.erase(str.size() - 1);
+    }
+}
+
 #endif //STRINGUTILS_HPP

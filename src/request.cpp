@@ -26,6 +26,7 @@ namespace lfs
             m_method = str_buf.substr(line_start, method_end);
             m_route = str_buf.substr(method_end + 1, route_end - method_end - 1);
             m_version = str_buf.substr(route_end + 1, line_end - route_end - 1);
+            remove_tailing_carriage_return(m_version);
 
             line_start = line_end + 1;
             line_end = str_buf.find('\n', line_start);
@@ -37,6 +38,7 @@ namespace lfs
         while (m_parse_mode == LFS_RP_HEADERS && line_end != std::string::npos)
         {
             std::string line_str { str_buf.substr(line_start, line_end - line_start) };
+            remove_tailing_carriage_return(line_str);
 
             if (line_str.empty())
             {
@@ -65,7 +67,7 @@ namespace lfs
         LFS_LOG_DEBUG("parsed request", NULL);
 
         // parse content
-        m_content += str_buf.substr(line_end, std::string::npos);
+        m_content.append(str_buf.substr(line_end, std::string::npos));
     }
 
     bool Request::has_received_all_content() const
@@ -77,7 +79,7 @@ namespace lfs
         } catch (std::out_of_range &)
         {
             LFS_LOG_ERROR("Content-Length header not present in request", NULL);
-            return false;
+            return true;
         }
     }
 }

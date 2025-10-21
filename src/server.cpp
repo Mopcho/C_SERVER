@@ -70,8 +70,9 @@ void lfs::Server::process_pollin(pollfd& pollevent)
 
 void lfs::Server::remove_connection(int socketfd)
 {
-    m_connections.erase(socketfd);
     pollfd_remove(socketfd);
+    m_connections.erase(socketfd);
+    ::close(socketfd);
 }
 
 void lfs::Server::pollfd_add(int sockfd, int eventflags)
@@ -114,6 +115,7 @@ void lfs::Server::process_pollout(pollfd& pollevent)
     {
         ::send(conn->second->m_sockfd, response->m_response_buffer.data(), response->m_response_buffer.size(), 0);
         pollevent.events &= ~POLLOUT;
+        remove_connection(pollevent.fd); // TODO: Remove this later
     }
 }
 
